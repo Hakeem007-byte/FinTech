@@ -1,0 +1,1613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FreetownRide - Ride Sharing in Sierra Leone</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@googlemaps/js-api-loader@1.0.0/dist/index.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .map-container {
+            background-image: url('https://maps.googleapis.com/maps/api/staticmap?center=Freetown,Sierra+Leone&zoom=13&size=800x400&maptype=roadmap&key=YOUR_API_KEY');
+            background-size: cover;
+            background-position: center;
+            height: 400px;
+        }
+        
+        .driver-marker {
+            width: 16px;
+            height: 16px;
+            background-color: #3B82F6;
+            border-radius: 50%;
+            border: 2px solid white;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+            100% { transform: scale(1); }
+        }
+        
+        .slide-up {
+            animation: slideUp 0.5s forwards;
+        }
+        
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        
+        .slide-down {
+            animation: slideDown 0.5s forwards;
+        }
+        
+        @keyframes slideDown {
+            from { transform: translateY(0); }
+            to { transform: translateY(100%); }
+        }
+        
+        .ride-option:hover {
+            transform: scale(1.02);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .location-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px #3B82F6;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+    <!-- Header -->
+    <header class="bg-black text-white p-4 flex justify-between items-center">
+        <div class="flex items-center">
+            <i class="fas fa-car text-blue-500 text-2xl mr-2"></i>
+            <h1 class="text-xl font-bold">Freetown<span class="text-blue-500">Ride</span></h1>
+        </div>
+        <div class="flex items-center space-x-4" id="authButtons">
+            <button id="loginBtn" class="px-4 py-2 rounded-lg font-medium hover:bg-gray-800">
+                Log In
+            </button>
+            <button id="signupBtn" class="px-4 py-2 bg-blue-500 rounded-lg font-medium hover:bg-blue-600">
+                Sign Up
+            </button>
+        </div>
+        <div class="flex items-center space-x-4 hidden" id="userButtons">
+            <button class="bg-gray-800 p-2 rounded-full">
+                <i class="fas fa-bell"></i>
+            </button>
+            <button class="bg-gray-800 p-2 rounded-full" id="userAccountBtn">
+                <i class="fas fa-user"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="relative">
+        <!-- Map -->
+        <div class="map-container relative h-[400px]">
+            <div class="absolute top-4 left-4 right-4">
+                <div class="flex justify-between">
+                    <button id="menuBtn" class="bg-white p-2 rounded-full shadow-md">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <button class="bg-white p-2 rounded-full shadow-md">
+                        <i class="fas fa-location-arrow"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Driver markers (simulated) -->
+            <div class="driver-marker absolute" style="top: 40%; left: 30%;"></div>
+            <div class="driver-marker absolute" style="top: 60%; left: 50%;"></div>
+            <div class="driver-marker absolute" style="top: 30%; left: 70%;"></div>
+        </div>
+
+        <!-- Ride Options Panel -->
+        <div id="rideOptions" class="bg-white rounded-t-3xl p-6 shadow-lg absolute bottom-0 left-0 right-0">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold">Choose a ride</h2>
+                <button id="closeOptions" class="text-gray-500">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="ride-option border border-gray-200 rounded-lg p-4 cursor-pointer transition duration-200">
+                    <div class="flex items-center mb-2">
+                        <i class="fas fa-motorcycle text-blue-500 mr-2"></i>
+                        <span class="font-medium">Bike</span>
+                    </div>
+                    <div class="text-sm text-gray-500">Le 15+</div>
+                    <div class="text-xs text-gray-400">5 min away</div>
+                </div>
+                
+                <div class="ride-option border border-gray-200 rounded-lg p-4 cursor-pointer transition duration-200">
+                    <div class="flex items-center mb-2">
+                        <i class="fas fa-car text-blue-500 mr-2"></i>
+                        <span class="font-medium">Standard</span>
+                    </div>
+                    <div class="text-sm text-gray-500">Le 25+</div>
+                    <div class="text-xs text-gray-400">7 min away</div>
+                </div>
+                
+                <div class="ride-option border border-gray-200 rounded-lg p-4 cursor-pointer transition duration-200">
+                    <div class="flex items-center mb-2">
+                        <i class="fas fa-car text-blue-500 mr-2"></i>
+                        <span class="font-medium">Premium</span>
+                    </div>
+                    <div class="text-sm text-gray-500">Le 250+</div>
+                    <div class="text-xs text-gray-400">10 min away</div>
+                </div>
+                
+                <div class="ride-option border border-gray-200 rounded-lg p-4 cursor-pointer transition duration-200">
+                    <div class="flex items-center mb-2">
+                        <i class="fas fa-shuttle-van text-blue-500 mr-2"></i>
+                        <span class="font-medium">XL</span>
+                    </div>
+                    <div class="text-sm text-gray-500">Le 350+</div>
+                    <div class="text-xs text-gray-400">12 min away</div>
+                </div>
+            </div>
+            
+            <button id="confirmRide" class="w-full bg-blue-500 text-white py-3 rounded-lg font-bold hover:bg-blue-600 transition duration-200">
+                Confirm Ride
+            </button>
+        </div>
+
+        <!-- Search Panel -->
+        <div id="searchPanel" class="bg-white rounded-lg shadow-lg absolute top-4 left-4 right-4 p-4">
+            <div class="flex items-center mb-4">
+                <div class="flex flex-col items-center mr-3">
+                    <div class="w-4 h-4 rounded-full bg-blue-500"></div>
+                    <div class="w-1 h-8 bg-gray-300"></div>
+                    <div class="w-4 h-4 rounded-full bg-green-500"></div>
+                </div>
+                <div class="flex-1 relative">
+                    <input type="text" id="currentLocation" class="location-input w-full p-3 border-b border-gray-200 focus:border-blue-500" placeholder="Current location" value="Freetown, Sierra Leone">
+                    <input type="text" id="destination" class="location-input w-full p-3" placeholder="Where to?" autocomplete="off">
+                    <!-- Suggestions dropdown -->
+                    <div id="suggestions" class="hidden absolute left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 max-h-60 overflow-y-auto">
+                        <div class="suggestion-item p-3 hover:bg-gray-100 cursor-pointer flex items-center">
+                            <i class="fas fa-map-marker-alt text-blue-500 mr-2"></i>
+                            <div>
+                                <div class="font-medium">Lumley Beach</div>
+                                <div class="text-xs text-gray-500">Regent</div>
+                            </div>
+                        </div>
+                        <div class="suggestion-item p-3 hover:bg-gray-100 cursor-pointer flex items-center">
+                            <i class="fas fa-map-marker-alt text-blue-500 mr-2"></i>
+                            <div>
+                                <div class="font-medium">Aberdeen</div>
+                                <div class="text-xs text-gray-500">New England Vile</div>
+                            </div>
+                        </div>
+                        <div class="suggestion-item p-3 hover:bg-gray-100 cursor-pointer flex items-center">
+                            <i class="fas fa-map-marker-alt text-blue-500 mr-2"></i>
+                            <div>
+                                <div class="font-medium">Hill Station</div>
+                                <div class="text-xs text-gray-500">Jui</div>
+                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button id="findRide" class="w-full bg-blue-500 text-white py-3 rounded-lg font-bold hover:bg-blue-600 transition duration-200">
+                Find Ride
+            </button>
+            
+            <!-- Recent Searches -->
+            <div id="recentSearches" class="mt-4 hidden">
+                <h3 class="text-sm font-bold text-gray-500 mb-2">RECENT SEARCHES</h3>
+                <div class="space-y-2">
+                    <div class="recent-item p-2 hover:bg-gray-100 rounded cursor-pointer flex items-center">
+                        <i class="fas fa-history text-gray-400 mr-3"></i>
+                        <div>
+                            <div>Lumley Beach</div>
+                            <div class="text-xs text-gray-500">Freetown, Sierra Leone</div>
+                        </div>
+                    </div>
+                    <div class="recent-item p-2 hover:bg-gray-100 rounded cursor-pointer flex items-center">
+                        <i class="fas fa-history text-gray-400 mr-3"></i>
+                        <div>
+                            <div>Aberdeen</div>
+                            <div class="text-xs text-gray-500"></div>
+                        </div>
+                            <div>Jui</div>
+                            <div class="text-xs text-gray-500"></div>
+                        </div>
+                                      <div>Hasthings</div>
+                            <div class="text-xs text-gray-500"></div>
+                        </div>
+                                      <div>Babadorie</div>
+                            <div class="text-xs text-gray-500"></div>
+                        </div>
+                                      <div>Regent</div>
+                            <div class="text-xs text-gray-500"></div>
+                        </div>
+                                      <div>Glouster street</div>
+                            <div class="text-xs text-gray-500"></div>
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ride Confirmation Modal -->
+        <div id="rideConfirmation" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold">Confirm your ride😊</h2>
+                    <button id="closeConfirmation" class="text-gray-500">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="flex items-center mb-6">
+                    <i class="fas fa-car text-blue-500 text-2xl mr-4"></i>
+                    <div>
+                        <h3 class="font-bold">Standard Ride</h3>
+                        <p class="text-gray-500">Toyota Corolla or similar</p>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <div class="flex items-center mb-2">
+                        <i class="fas fa-map-marker-alt text-blue-500 mr-2"></i>
+                        <span></span>
+                    </div>
+                    <div class="flex items-center">
+                        <i class="fas fa-flag-checkered text-green-500 mr-2"></i>
+                        <span></span>
+                    </div>
+                </div>
+                
+                <div class="bg-gray-100 p-4 rounded-lg mb-6">
+                    <div class="flex justify-between mb-2">
+                        <span>Estimated fare</span>
+                        <span class="font-bold">Le 25</span>
+                    </div>
+                    <div class="flex justify-between text-sm text-gray-500">
+                        <span>Distance: 5.2 km</span>
+                        <span>Time: 15 min</span>
+                    </div>
+                </div>
+                
+                <button id="bookRide" class="w-full bg-blue-500 text-white py-3 rounded-lg font-bold hover:bg-blue-600 transition duration-200">
+                    Book Ride
+                </button>
+            </div>
+        </div>
+
+        <!-- Ride Booked Modal -->
+        <div id="rideBooked" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+                <div class="text-center mb-6">
+                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-check text-green-500 text-2xl"></i>
+                    </div>
+                    <h2 class="text-xl font-bold mb-2">Ride Confirmed!</h2>
+                    <p class="text-gray-500">Your driver will arrive in approximately 7 minutes</p>
+                </div>
+                
+                <div class="flex items-center mb-6 p-4 bg-gray-100 rounded-lg">
+                    <div class="w-12 h-12 bg-gray-300 rounded-full mr-4 overflow-hidden">
+                        <img src="https://th.bing.com/th/id/OIP.hfpWs3kDawGeNFPARlZvRgHaE7?w=284&h=189&c=7&r=0&o=7&pid=1.7&rm=3" alt="Driver" class="w-full h-full object-cover">
+                    </div>
+                    <div>
+                        <h3 class="font-bold">Driver Id 2365.</h3>
+                        <div class="flex items-center">
+                            <i class="fas fa-star text-yellow-400 mr-1"></i>
+                            <span>4.9 (128 rides)</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <div class="flex items-center mb-2">
+                        <i class="fas fa-car text-blue-500 mr-2"></i>
+                        <span>Toyota Corolla • White • ANX 183</span>
+                    </div>
+                    <div class="flex items-center">
+                        <i class="fas fa-phone-alt text-blue-500 mr-2"></i>
+                        <span>+232 76 123456</span>
+                    </div>
+                </div>
+                
+                <div class="flex justify-between">
+                    <button id="cancelRide" class="px-4 py-2 border border-red-500 text-red-500 rounded-lg font-medium hover:bg-red-50 transition duration-200">
+                        Cancel Ride
+                    </button>
+                    <button id="contactDriver" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition duration-200">
+                        Contact Driver
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Menu Modal -->
+    <div id="menuModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-start justify-end z-50">
+        <div class="bg-white w-64 h-full p-4">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold">Menu</h2>
+                <button id="closeMenu" class="text-gray-500">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <button class="w-full flex items-center p-3 hover:bg-gray-100 rounded-lg">
+                    <i class="fas fa-history text-gray-600 mr-3"></i>
+                    <span>Ride History</span>
+                </button>
+                <button class="w-full flex items-center p-3 hover:bg-gray-100 rounded-lg">
+                    <i class="fas fa-star text-gray-600 mr-3"></i>
+                    <span>Rate a Driver</span>
+                </button>
+                <button class="w-full flex items-center p-3 hover:bg-gray-100 rounded-lg">
+                    <i class="fas fa-cog text-gray-600 mr-3"></i>
+                    <span>Settings</span>
+                </button>
+                <button id="uploadBtn" class="w-full flex items-center p-3 hover:bg-gray-100 rounded-lg">
+                    <i class="fas fa-upload text-gray-600 mr-3"></i>
+                    <span>Upload Documents</span>
+                </button>
+                <button class="w-full flex items-center p-3 hover:bg-gray-100 rounded-lg">
+                    <i class="fas fa-question-circle text-gray-600 mr-3"></i>
+                    <span>Help</span>
+                </button>
+                <button class="w-full flex items-center p-3 hover:bg-gray-100 rounded-lg text-red-500">
+                    <i class="fas fa-sign-out-alt mr-3"></i>
+                    <span>Log Out</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Account Modal -->
+    <div id="accountModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-start justify-end z-50">
+        <div class="bg-white w-64 h-full p-4">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold">My Account</h2>
+                <button id="closeAccount" class="text-gray-500">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="flex flex-col items-center mb-6">
+                <div class="w-24 h-24 bg-gray-300 rounded-full mb-4 overflow-hidden relative mx-auto">
+                    <img id="profileImage" src="data:image/webp;base64,UklGRiQDAABXRUJQVlA4IBgDAADQIwCdASrDAMMAPp1On0olpSMhqjl46LATiWlu3WBpKXusy0vBW0p7K8Us+D9n4Sf8mvUnre24Gy9blhXTpmtgzq/3eLDAIOAimojNkgToydZWJAWxxrfUz0wQSEAG42rEbb0gVUDZe/ViffkFrBV8nEGH1L/m50chzc1q9bCCg0CH46P6EllfIaT48/sv23+bhsXYrDXhG4JWCgnYCdOhuJSYc+mvsdXPGN8uucllDiluBT6/2Zp4QrRbaxfMecvzPwNGhrf/799ZFKMVd+EJoe9CGU2i1V/DRdxybpsde5jL2hWwdnEqO/OKNPM4TmoS6u3iHr++EthwN9l59JIFx41QeQvTwvg8YNengaksunPCCvCzSeGwOwf3nRbKNPFDzx0RLpuAAP73HJ3RYMxhnAnT62DOjZifCSRMuCzduD5SSCJt2t+zFXaO31Hziqxxos9qj/Bde+HybltqeHTA0wmJsAB78MRIbeNBJnzTw+1OrDgy0nM1VgAT4ym+XqakYzQilFwmXXab3Woez8XdJMoxouI8owC7oXLtZ+kunrTRMu6skSSx58aI4elkQgrgWSHlskyzfblcOUp+p02zmNrRX+3q9WCNX/5e0oJ0BByF8l2ABMjbXwmASryKJlteZgFakr+jVWu6GrKcfnf/c12JjNfsIHMLGcvmAki6H8NjjWWHXzWsPmWBDq0Sf0EVwFxGgh1hjI0bGHTjLoxvKkvaqCkgl1wBjUz21jXN2st6np34h8qP+UGEDfOUDPjOUYf6aIiwI29g1dAra04LS/sm66njqn+CwzCChZ9EVj0DEg6TJtz584LzDz5akHFMTj3MS9ScP3FGZqx8/1JKnprq/KgPUaO2LEZ4X8YY8dAOG+uI+obc+0jvaKKa/EpeSOUht+0rOdMJ23IQg6sQk6jSrNpAgvlMfDqeYeCbW1012ppst3z5mIz07+yifaRE43QO52X9PdN2P17Olpjguf3Kb0xdBJ9FtzUQ26OJImwJk/b06EINccpPCPbvQZCRwealg6zIwDopnKo7tVRtNHFWUTAAAAA=" alt="Profile" class="w-full h-full object-cover">
+                    <label for="imageUpload" class="absolute bottom-0 right-0 bg-blue-500 text-white rounded-full p-2 cursor-pointer hover:bg-blue-600 transition">
+                        <i class="fas fa-camera"></i>
+                        <input id="imageUpload" type="file" accept="image/*" class="hidden">
+                    </label>
+                </div>
+                <div class="text-center mb-4">
+                    <button id="removePhotoBtn" class="text-sm text-red-500 hover:text-red-600">Remove Photo</button>
+                </div>
+                <input id="profileName" type="text" class="font-bold text-center bg-transparent border-b border-transparent focus:border-gray-300 focus:outline-none mb-1" value="User">
+                <input id="profileEmail" type="email" class="text-gray-500 text-sm text-center bg-transparent border-b border-transparent focus:border-gray-300 focus:outline-none" value="User123@gmail.com">
+            </div>
+            <div class="space-y-4">
+                <button class="w-full flex items-center p-3 hover:bg-gray-100 rounded-lg">
+                    <i class="fas fa-user-edit text-gray-600 mr-3"></i>
+                    <span>Edit Profile</span>
+                </button>
+                <button class="w-full flex items-center p-3 hover:bg-gray-100 rounded-lg">
+                    <i class="fas fa-shield-alt text-gray-600 mr-3"></i>
+                    <span>Privacy Settings</span>
+                </button>
+                <button class="w-full flex items-center p-3 hover:bg-gray-100 rounded-lg">
+                    <i class="fas fa-credit-card text-gray-600 mr-3"></i>
+                    <span>Payment Methods</span>
+                </button>
+                <button class="w-full flex items-center p-3 hover:bg-gray-100 rounded-lg">
+                    <i class="fas fa-bell text-gray-600 mr-3"></i>
+                    <span>Notification Settings</span>
+                </button>
+                <button id="saveProfileBtn" class="w-full bg-blue-500 text-white py-3 rounded-lg font-bold hover:bg-blue-600 mt-4">
+                    Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Wallet Modal -->
+    <div id="walletModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold">My Wallet</h2>
+                <button id="closeWallet" class="text-gray-500">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="bg-blue-50 rounded-lg p-4 mb-6">
+                <div class="text-gray-500 text-sm mb-1">Available Balance</div>
+                <div class="text-3xl font-bold">Le 150,000</div>
+            </div>
+            
+            <div class="space-y-4 mb-6">
+                <!-- Add Money Form -->
+                <div id="addMoneyForm" class="hidden bg-white p-4 rounded-lg border border-gray-200">
+                    <h3 class="font-bold mb-3">Add Money to Wallet</h3>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="amount">Amount (Le)</label>
+                        <input class="w-full p-2 border border-gray-300 rounded" type="number" id="addAmount" placeholder="Enter amount">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Payment Method</label>
+                        <div class="space-y-2">
+                            <label class="flex items-center">
+                                <input type="radio" name="paymentMethod" class="mr-2" checked> Mobile Money
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="paymentMethod" class="mr-2"> Credit/Debit Card
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="paymentMethod" class="mr-2"> Bank Transfer
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="paymentMethod" class="mr-2">Apple card 
+                            </label>
+                        </div>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button id="cancelAddMoney" class="flex-1 bg-gray-200 text-gray-800 py-2 rounded hover:bg-gray-300">Cancel</button>
+                        <button id="confirmAddMoney" class="flex-1 bg-blue-500 text-white py-2 rounded hover:bg-blue-600">Add Money</button>
+                    </div>
+                </div>
+
+                <!-- Transfer Money Form -->
+                <div id="transferMoneyForm" class="hidden bg-white p-4 rounded-lg border border-gray-200">
+                    <h3 class="font-bold mb-3">Transfer Money</h3>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="amount">Amount (Le)</label>
+                        <input class="w-full p-2 border border-gray-300 rounded" type="number" id="transferAmount" placeholder="Enter amount">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="recipient">Recipient Phone Number</label>
+                        <input class="w-full p-2 border border-gray-300 rounded" type="tel" id="recipientPhone" placeholder="+232 76 123456">
+                    </div>
+                    <div class="flex space-x-2">
+                        <button id="cancelTransfer" class="flex-1 bg-gray-200 text-gray-800 py-2 rounded hover:bg-gray-300">Cancel</button>
+                        <button id="confirmTransfer" class="flex-1 bg-blue-500 text-white py-2 rounded hover:bg-blue-600">Transfer</button>
+                    </div>
+                </div>
+
+                <button id="addMoneyBtn" class="w-full flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
+                    <div class="flex items-center">
+                        <i class="fas fa-plus-circle text-blue-500 text-xl mr-3"></i>
+                        <span>Add Money</span>
+                    </div>
+                    <i class="fas fa-chevron-right text-gray-400"></i>
+                </button>
+                
+                <button id="transferMoneyBtn" class="w-full flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
+                    <div class="flex items-center">
+                        <i class="fas fa-exchange-alt text-blue-500 text-xl mr-3"></i>
+                        <span>Transfer Money</span>
+                    </div>
+                    <i class="fas fa-chevron-right text-gray-400"></i>
+                </button>
+                
+                <button id="paymentMethodsBtn" class="w-full flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
+                    <div class="flex items-center">
+                        <i class="fas fa-credit-card text-blue-500 text-xl mr-3"></i>
+                        <span>Payment Methods</span>
+                    </div>
+                    <i class="fas fa-chevron-right text-gray-400"></i>
+                </button>
+            </div>
+            
+            <div class="border-t border-gray-200 pt-4">
+                <h3 class="font-bold mb-3">Recent Transactions</h3>
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <div class="font-medium">Ride Payment</div>
+                            <div class="text-sm text-gray-500">Today, 10:30 AM</div>
+                        </div>
+                        <div class="text-red-500 font-bold">- Le 25,000</div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <div class="font-medium">Wallet Top-up</div>
+                            <div class="text-sm text-gray-500">Yesterday, 4:15 PM</div>
+                        </div>
+                        <div class="text-green-500 font-bold">+ Le 100,000</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trips History Modal -->
+    <div id="tripsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4 max-h-[80vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold">Your Trips</h2>
+                <button id="closeTrips" class="text-gray-500">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <!-- Sample Trip 1 -->
+                <div class="border border-gray-200 rounded-lg p-4">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <h3 class="font-bold">Standard Ride</h3>
+                            <p class="text-gray-500 text-sm">Toyota Corolla • White</p>
+                        </div>
+                        <span class="font-bold">Le 25</span>
+                    </div>
+                    <div class="flex items-center text-sm mb-2">
+                        <i class="fas fa-map-marker-alt text-blue-500 mr-2"></i>
+                        <span>Hill station to Lumley Beach</span>
+                    </div>
+                    <div class="flex items-center text-sm text-gray-500">
+                        <i class="fas fa-calendar-alt mr-2"></i>
+                        <span>Today, 10:30 AM</span>
+                    </div>
+                </div>
+                
+                <!-- Sample Trip 2 -->
+                <div class="border border-gray-200 rounded-lg p-4">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <h3 class="font-bold">Bike Ride</h3>
+                            <p class="text-gray-500 text-sm">Honda Bike</p>
+                        </div>
+                        <span class="font-bold">Le 15</span>
+                    </div>
+                    <div class="flex items-center text-sm mb-2">
+                        <i class="fas fa-map-marker-alt text-blue-500 mr-2"></i>
+                        <span>Central Freetown to Aberdeen</span>
+                    </div>
+                    <div class="flex items-center text-sm text-gray-500">
+                        <i class="fas fa-calendar-alt mr-2"></i>
+                        <span>Yesterday, 4:15 PM</span>
+                    </div>
+                </div>
+                
+                <!-- Sample Trip 3 -->
+                <div class="border border-gray-200 rounded-lg p-4">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <h3 class="font-bold">Premium Ride</h3>
+                            <p class="text-gray-500 text-sm">Mercedes Benz</p>
+                        </div>
+                        <span class="font-bold">Le 250</span>
+                    </div>
+                    <div class="flex items-center text-sm mb-2">
+                        <i class="fas fa-map-marker-alt text-blue-500 mr-2"></i>
+                        <span>Lumley to Hill Station</span>
+                    </div>
+                    <div class="flex items-center text-sm text-gray-500">
+                        <i class="fas fa-calendar-alt mr-2"></i>
+                        <span>2 days ago, 8:45 AM</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Methods Modal -->
+    <div id="paymentMethodsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold">Payment Methods</h2>
+                <button id="closePaymentMethods" class="text-gray-500">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4 mb-6">
+                <!-- Saved Cards -->
+                <div class="border border-gray-200 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <div class="flex items-center">
+                            <i class="fas fa-credit-card text-blue-500 mr-3"></i>
+                            <span class="font-medium">VISA •••• 4242</span>
+                        </div>
+                        <button class="text-red-500 text-sm">Remove</button>
+                    </div>
+                    <div class="text-sm text-gray-500">Expires 12/25</div>
+                </div>
+                
+                <div class="border border-gray-200 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <div class="flex items-center">
+                            <i class="fas fa-credit-card text-blue-500 mr-3"></i>
+                            <span class="font-medium">Orange Money</span>
+                        </div>
+                        <button class="text-red-500 text-sm">Remove</button>
+                    </div>
+                    <div class="text-sm text-gray-500">+232 72 422107</div>
+                </div>
+            </div>
+            
+            <button id="addPaymentMethodBtn" class="w-full border-2 border-dashed border-blue-500 text-blue-500 py-3 rounded-lg font-bold hover:bg-blue-50 transition duration-200 mb-4">
+                <i class="fas fa-plus mr-2"></i> Add Payment Method
+            </button>
+            
+            <div id="addPaymentForm" class="hidden bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <h3 class="font-bold mb-3">Add Payment Method</h3>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Payment Type</label>
+                    <select class="w-full p-2 border border-gray-300 rounded">
+                        <option>Credit/Debit Card</option>
+                        <option>Mobile Money</option>
+                        <option>Bank Account</option>
+                         <option>Apple pay card</option> 
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Card Number</label>
+                    <input class="w-full p-2 border border-gray-300 rounded" placeholder="1433 224 8790">
+                </div>
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Expiry</label>
+                        <input class="w-full p-2 border border-gray-300 rounded" placeholder="MM/YY">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2">CVV</label>
+                        <input class="w-full p-2 border border-gray-300 rounded" placeholder="123">
+                    </div>
+                </div>
+                <div class="flex space-x-2">
+                    <button id="cancelAddPayment" class="flex-1 bg-gray-200 text-gray-800 py-2 rounded hover:bg-gray-300">Cancel</button>
+                    <button id="savePaymentMethod" class="flex-1 bg-blue-500 text-white py-2 rounded hover:bg-blue-600">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Privacy Settings Modal -->
+    <div id="privacyModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold">Privacy Settings</h2>
+                <button id="closePrivacy" class="text-gray-500">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4 mb-6">
+                <div class="flex justify-between items-center">
+                    <span>Share ride history with friends</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" class="sr-only peer" checked>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                    </label>
+                </div>
+                
+                <div class="flex justify-between items-center">
+                    <span>Show my profile in search</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" class="sr-only peer" checked>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                    </label>
+                </div>
+                
+                <div class="flex justify-between items-center">
+                    <span>Allow location tracking</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                    </label>
+                </div>
+                
+                <div class="flex justify-between items-center">
+                    <span>Show my exact location</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-200 pt-4">
+                <h3 class="font-bold mb-3">Data Privacy</h3>
+                <div class="space-y-3">
+                    <button class="w-full text-left text-blue-500 hover:underline">View Privacy Policy</button>
+                    <button class="w-full text-left text-blue-500 hover:underline">Request Data Export</button>
+                    <button class="w-full text-left text-red-500 hover:underline">Delete My Account</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Documents Modal -->
+    <div id="uploadModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold">Upload Documents</h2>
+                <button id="closeUpload" class="text-gray-500">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="mb-6">
+                <p class="text-gray-600 mb-4">Please upload required documents for verification:</p>
+                <div class="space-y-4">
+                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                        <i class="fas fa-id-card text-3xl text-gray-400 mb-2"></i>
+                        <p class="text-gray-500 mb-2">Drag & drop ID document here</p>
+                        <p class="text-gray-400 text-sm">or</p>
+                        <label for="idUpload" class="inline-block mt-2 px-4 py-2 bg-blue-500 text-white rounded-lg cursor-pointer hover:bg-blue-600">
+                            Browse Files
+                            <input id="idUpload" type="file" class="hidden" accept="image/*,.pdf">
+                        </label>
+                    </div>
+                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                        <i class="fas fa-car text-3xl text-gray-400 mb-2"></i>
+                        <p class="text-gray-500 mb-2">Drag & drop driver's license here</p>
+                        <p class="text-gray-400 text-sm">or</p>
+                        <label for="licenseUpload" class="inline-block mt-2 px-4 py-2 bg-blue-500 text-white rounded-lg cursor-pointer hover:bg-blue-600">
+                            Browse Files
+                            <input id="licenseUpload" type="file" class="hidden" accept="image/*,.pdf">
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <button id="submitDocuments" class="w-full bg-blue-500 text-white py-3 rounded-lg font-bold hover:bg-blue-600">
+                Submit Documents
+            </button>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold">Log In</h2>
+                <button id="closeLogin" class="text-gray-500">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="loginEmail">Email</label>
+                <input type="email" id="loginEmail" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter your email">
+            </div>
+            
+            <div class="mb-6">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="loginPassword">Password</label>
+                <input type="password" id="loginPassword" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter your password">
+                <a href="#" class="text-sm text-blue-500 hover:underline mt-2 block">Forgot password?</a>
+            </div>
+            
+            <button id="submitLogin" class="w-full bg-blue-500 text-white py-3 rounded-lg font-bold hover:bg-blue-600 mb-4">
+                Log In
+            </button>
+            
+            <div class="text-center text-sm">
+                Don't have an account? <button id="switchToSignup" class="text-blue-500 hover:underline">Sign up</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Signup Modal -->
+    <div id="signupModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold">Create Account</h2>
+                <button id="closeSignup" class="text-gray-500">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="signupName">Full Name</label>
+                <input type="text" id="signupName" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter your full name">
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="signupEmail">Email</label>
+                <input type="email" id="signupEmail" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter your email">
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="signupPhone">Phone Number</label>
+                <input type="tel" id="signupPhone" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="+232 76 123456">
+            </div>
+            
+            <div class="mb-6">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="signupPassword">Password</label>
+                <input type="password" id="signupPassword" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Create a password">
+                <div class="text-xs text-gray-500 mt-1">At least 8 characters</div>
+            </div>
+             <div class="mb-6">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="signupPassword">Confirm Password</label>
+                <input type="password" id="signupPassword" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Create a password">
+                <div class="text-xs text-gray-500 mt-1">At least 8 characters</div>
+            </div>
+            
+            <button id="submitSignup" class="w-full bg-blue-500 text-white py-3 rounded-lg font-bold hover:bg-blue-600 mb-4">
+                Create Account
+            </button>
+            
+            <div class="text-center text-sm">
+                Already have an account? <button id="switchToLogin" class="text-blue-500 hover:underline">Log in</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around py-3 z-10">
+        <button id="homeBtn" class="flex flex-col items-center text-blue-500">
+            <i class="fas fa-home text-xl"></i>
+            <span class="text-xs mt-1">Home</span>
+        </button>
+        <button id="searchBtn" class="flex flex-col items-center text-gray-500">
+            <i class="fas fa-search text-xl"></i>
+            <span class="text-xs mt-1">Search</span>
+        </button>
+        <button id="tripsBtn" class="flex flex-col items-center text-gray-500">
+            <i class="fas fa-receipt text-xl"></i>
+            <span class="text-xs mt-1">Trips</span>
+        </button>
+        <button id="walletBtn" class="flex flex-col items-center text-gray-500">
+            <i class="fas fa-wallet text-xl"></i>
+            <span class="text-xs mt-1">Wallet</span>
+        </button>
+    </nav>
+
+    <script>
+        // Authentication state
+        let isLoggedIn = false;
+        let currentUser = null;
+
+        // DOM Elements
+        const loginBtn = document.getElementById('loginBtn');
+        const signupBtn = document.getElementById('signupBtn');
+        const authButtons = document.getElementById('authButtons');
+        const userButtons = document.getElementById('userButtons');
+        const userAccountBtn = document.getElementById('userAccountBtn');
+        const loginModal = document.getElementById('loginModal');
+        const signupModal = document.getElementById('signupModal');
+        const closeLogin = document.getElementById('closeLogin');
+        const closeSignup = document.getElementById('closeSignup');
+        const switchToSignup = document.getElementById('switchToSignup');
+        const switchToLogin = document.getElementById('switchToLogin');
+        const submitLogin = document.getElementById('submitLogin');
+        const submitSignup = document.getElementById('submitSignup');
+        const findRideBtn = document.getElementById('findRide');
+        const rideOptionElements = document.querySelectorAll('.ride-option');
+        const destinationInput = document.getElementById('destination');
+        const suggestionsDiv = document.getElementById('suggestions');
+        const suggestionItems = document.querySelectorAll('.suggestion-item');
+        const recentSearchesDiv = document.getElementById('recentSearches');
+        let selectedRide = null;
+
+        // Sample locations data (in a real app, this would come from an API)
+        const locations = [
+            { name: "Lumley Beach", address: "Freetown, Sierra Leone" },
+            { name: "Aberdeen", address: "Freetown, Sierra Leone" },
+            { name: "Hill Station", address: "Freetown, Sierra Leone" },
+            { name: "Central Freetown", address: "Freetown, Sierra Leone" },
+            { name: "Congo Cross", address: "Freetown, Sierra Leone" },
+            { name: "Wilberforce", address: "Freetown, Sierra Leone" }
+        ];
+
+        // Recent searches (would be stored in localStorage in a real app)
+        let recentSearches = [
+            { name: "Lumley Beach", address: "Freetown, Sierra Leone" },
+            { name: "Aberdeen", address: "Freetown, Sierra Leone" }
+        ];
+
+        // Show/hide suggestions based on input
+        destinationInput.addEventListener('focus', () => {
+            if (destinationInput.value === '') {
+                recentSearchesDiv.classList.remove('hidden');
+                suggestionsDiv.classList.add('hidden');
+            } else {
+                recentSearchesDiv.classList.add('hidden');
+                filterSuggestions(destinationInput.value);
+            }
+        });
+
+        destinationInput.addEventListener('input', (e) => {
+            recentSearchesDiv.classList.add('hidden');
+            filterSuggestions(e.target.value);
+        });
+
+        // Filter suggestions based on input
+        function filterSuggestions(query) {
+            const filtered = locations.filter(loc => 
+                loc.name.toLowerCase().includes(query.toLowerCase()) ||
+                loc.address.toLowerCase().includes(query.toLowerCase())
+            );
+
+            if (filtered.length > 0) {
+                suggestionsDiv.innerHTML = filtered.map(loc => `
+                    <div class="suggestion-item p-3 hover:bg-gray-100 cursor-pointer flex items-center" data-name="${loc.name}">
+                        <i class="fas fa-map-marker-alt text-blue-500 mr-2"></i>
+                        <div>
+                            <div class="font-medium">${loc.name}</div>
+                            <div class="text-xs text-gray-500">${loc.address}</div>
+                        </div>
+                    </div>
+                `).join('');
+                
+                suggestionsDiv.classList.remove('hidden');
+                
+                // Add click handlers to new suggestion items
+                document.querySelectorAll('.suggestion-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const locationName = item.getAttribute('data-name');
+                        destinationInput.value = locationName;
+                        suggestionsDiv.classList.add('hidden');
+                        
+                        // Add to recent searches (in a real app, save to localStorage)
+                        if (!recentSearches.search(s => s.name === locationName)) {
+                            recentSearches.unshift({
+                                name: locationName,
+                                address: "Freetown, Sierra Leone"
+                            });
+                            updateRecentSearches();
+                        }
+                    });
+                });
+            } else {
+                suggestionsDiv.classList.add('hidden');
+            }
+        }
+
+        // Update recent searches display
+        function updateRecentSearches() {
+            recentSearchesDiv.innerHTML = `
+                <h3 class="text-sm font-bold text-gray-500 mb-2">RECENT SEARCHES</h3>
+                <div class="space-y-2">
+                    ${recentSearches.map(search => `
+                        <div class="recent-item p-2 hover:bg-gray-100 rounded cursor-pointer flex items-center" data-name="${search.name}">
+                            <i class="fas fa-history text-gray-400 mr-3"></i>
+                            <div>
+                                <div>${search.name}</div>
+                                <div class="text-xs text-gray-500">${search.address}</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            
+            // Add click handlers to recent items
+            document.querySelectorAll('.recent-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const locationName = item.getAttribute('data-name');
+                    destinationInput.value = locationName;
+                    recentSearchesDiv.classList.add('hidden');
+                });
+            });
+        }
+
+        // Initialize recent searches
+        updateRecentSearches();
+
+        // Close suggestions when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!destinationInput.contains(e.target) && !suggestionsDiv.contains(e.target)) {
+                suggestionsDiv.classList.add('hidden');
+                recentSearchesDiv.classList.add('hidden');
+            }
+        });
+
+        // Ride selection
+        rideOptionElements.forEach(option => {
+            option.addEventListener('click', () => {
+                rideOptionElements.forEach(opt => opt.classList.remove('border-blue-500', 'bg-blue-50'));
+                option.classList.add('border-blue-500', 'bg-blue-50');
+                selectedRide = option.querySelector('span').textContent;
+            });
+        });
+        const rideOptions = document.getElementById('rideOptions');
+        const closeOptionsBtn = document.getElementById('closeOptions');
+        const confirmRideBtn = document.getElementById('confirmRide');
+        const rideConfirmation = document.getElementById('rideConfirmation');
+        const closeConfirmationBtn = document.getElementById('closeConfirmation');
+        const bookRideBtn = document.getElementById('bookRide');
+        const rideBooked = document.getElementById('rideBooked');
+        const cancelRideBtn = document.getElementById('cancelRide');
+        const contactDriverBtn = document.getElementById('contactDriver');
+        const menuBtn = document.getElementById('menuBtn');
+
+        // Show ride options when Find Ride is clicked
+        findRideBtn.addEventListener('click', () => {
+            const destination = document.querySelectorAll('.location-input')[1].value;
+            if (!destination) {
+                alert('Please enter a destination');
+                return;
+            }
+            rideOptions.classList.remove('slide-down');
+            rideOptions.classList.add('slide-up');
+            // Keep search panel visible
+        });
+
+        // Close ride options
+        closeOptionsBtn.addEventListener('click', () => {
+            rideOptions.classList.remove('slide-up');
+            rideOptions.classList.add('slide-down');
+        });
+
+        // Show ride confirmation
+        confirmRideBtn.addEventListener('click', () => {
+            if (!selectedRide) {
+                alert('Please select a ride option first');
+                return;
+            }
+            rideConfirmation.classList.remove('hidden');
+            rideOptions.classList.remove('slide-up');
+            rideOptions.classList.add('slide-down');
+            
+            // Update confirmation modal with selected ride details
+            const confirmationTitle = document.querySelector('#rideConfirmation h3');
+            const confirmationPrice = document.querySelector('#rideConfirmation .font-bold');
+            
+            if (selectedRide === 'Bike') {
+                confirmationTitle.textContent = 'Bike Ride';
+                confirmationPrice.textContent = 'Le 15,000';
+            } else if (selectedRide === 'Standard') {
+                confirmationTitle.textContent = 'Standard Ride';
+                confirmationPrice.textContent = 'Le 25,000';
+            } else if (selectedRide === 'Premium') {
+                confirmationTitle.textContent = 'Premium Ride';
+                confirmationPrice.textContent = 'Le 35,000';
+            } else if (selectedRide === 'XL') {
+                confirmationTitle.textContent = 'XL Ride';
+                confirmationPrice.textContent = 'Le 45,000';
+            }
+        });
+
+        // Close ride confirmation
+        closeConfirmationBtn.addEventListener('click', () => {
+            rideConfirmation.classList.add('hidden');
+        });
+
+        // Book ride
+        bookRideBtn.addEventListener('click', () => {
+            rideConfirmation.classList.add('hidden');
+            rideBooked.classList.remove('hidden');
+        });
+
+        // Cancel ride
+        cancelRideBtn.addEventListener('click', () => {
+            if (confirm('Are you sure you want to cancel this ride?')) {
+                rideBooked.classList.add('hidden');
+                alert('Ride cancelled successfully');
+                // Reset UI
+                document.getElementById('searchPanel').classList.remove('hidden');
+                rideOptionElements.forEach(opt => opt.classList.remove('border-blue-500', 'bg-blue-50'));
+                selectedRide = null;
+            }
+        });
+
+        // Contact driver
+        contactDriverBtn.addEventListener('click', () => {
+            alert('Calling driver at +232 76 478902');
+        });
+
+        // Auth button handlers
+        loginBtn.addEventListener('click', () => {
+            loginModal.classList.remove('hidden');
+        });
+
+        signupBtn.addEventListener('click', () => {
+            signupModal.classList.remove('hidden');
+        });
+
+        closeLogin.addEventListener('click', () => {
+            loginModal.classList.add('hidden');
+        });
+
+        closeSignup.addEventListener('click', () => {
+            signupModal.classList.add('hidden');
+        });
+
+        switchToSignup.addEventListener('click', () => {
+            loginModal.classList.add('hidden');
+            signupModal.classList.remove('hidden');
+        });
+
+        switchToLogin.addEventListener('click', () => {
+            signupModal.classList.add('hidden');
+            loginModal.classList.remove('hidden');
+        });
+
+        // Login handler
+        submitLogin.addEventListener('click', () => {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            if (!email || !password) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            // In a real app, this would be an API call to your backend
+            // Here we'll simulate a successful login
+            currentUser = {
+                name: "User",
+                email: email,
+                phone: "+232 76 468907"
+            };
+            
+            isLoggedIn = true;
+            updateAuthUI();
+            loginModal.classList.add('hidden');
+            alert('Logged in successfully!');
+        });
+
+        // Signup handler
+        submitSignup.addEventListener('click', () => {
+            const name = document.getElementById('signupName').value;
+            const email = document.getElementById('signupEmail').value;
+            const phone = document.getElementById('signupPhone').value;
+            const password = document.getElementById('signupPassword').value;
+            
+            if (!name || !email || !phone || !password) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            if (password.length < 8) {
+                alert('Password must be at least 8 characters');
+                return;
+            }
+
+            // In a real app, this would be an API call to your backend
+            // Here we'll simulate a successful signup
+            currentUser = {
+                name: name,
+                email: email,
+                phone: phone
+            };
+            
+            isLoggedIn = true;
+            updateAuthUI();
+            signupModal.classList.add('hidden');
+            alert('Account created successfully!');
+        });
+
+        // Update UI based on auth state
+        function updateAuthUI() {
+            if (isLoggedIn) {
+                authButtons.classList.add('hidden');
+                userButtons.classList.remove('hidden');
+                // Update profile info if needed
+                if (currentUser) {
+                    document.getElementById('profileName').value = currentUser.name;
+                    document.getElementById('profileEmail').value = currentUser.email;
+                }
+            } else {
+                authButtons.classList.remove('hidden');
+                userButtons.classList.add('hidden');
+            }
+        }
+
+        // Account button handler
+        userAccountBtn.addEventListener('click', () => {
+            if (isLoggedIn) {
+                accountModal.classList.remove('hidden');
+            } else {
+                loginModal.classList.remove('hidden');
+            }
+        });
+
+        // Initialize auth UI
+        updateAuthUI();
+
+        // Menu and Account elements
+        const menuModal = document.getElementById('menuModal');
+        const closeMenuBtn = document.getElementById('closeMenu');
+        const accountModal = document.getElementById('accountModal');
+        const closeAccountBtn = document.getElementById('closeAccount');
+        const accountBtn = document.querySelector('header button:nth-child(2)');
+        const uploadModal = document.getElementById('uploadModal');
+        const closeUploadBtn = document.getElementById('closeUpload');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const submitDocumentsBtn = document.getElementById('submitDocuments');
+        const idUpload = document.getElementById('idUpload');
+        const licenseUpload = document.getElementById('licenseUpload');
+
+        // Menu button
+        menuBtn.addEventListener('click', () => {
+            menuModal.classList.remove('hidden');
+        });
+
+        // Close menu
+        closeMenuBtn.addEventListener('click', () => {
+            menuModal.classList.add('hidden');
+        });
+
+        // Account button
+        accountBtn.addEventListener('click', () => {
+            accountModal.classList.remove('hidden');
+        });
+
+        // Close account
+        closeAccountBtn.addEventListener('click', () => {
+            accountModal.classList.add('hidden');
+        });
+
+        // Profile image handling
+        const imageUpload = document.getElementById('imageUpload');
+        const profileImage = document.getElementById('profileImage');
+        const removePhotoBtn = document.getElementById('removePhotoBtn');
+        let profileImageChanged = false;
+        
+        imageUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                // Check if file is an image
+                if (!file.type.match('image.*')) {
+                    alert('Please select an image file');
+                    return;
+                }
+                
+                // Check file size (max 2MB)
+                if (file.size > 2 * 1024 * 1024) {
+                    alert('Image size should be less than 2MB');
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    profileImage.src = event.target.result;
+                    profileImageChanged = true;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Remove photo button
+        removePhotoBtn.addEventListener('click', () => {
+            profileImage.src = 'data:image/webp;base64,UklGRiQDAABXRUJQVlA4IBgDAADQIwCdASrDAMMAPp1On0olpSMhqjl46LATiWlu3WBpKXusy0vBW0p7K8Us+D9n4Sf8mvUnre24Gy9blhXTpmtgzq/3eLDAIOAimojNkgToydZWJAWxxrfUz0wQSEAG42rEbb0gVUDZe/ViffkFrBV8nEGH1L/m50chzc1q9bCCg0CH46P6EllfIaT48/sv23+bhsXYrDXhG4JWCgnYCdOhuJSYc+mvsdXPGN8uucllDiluBT6/2Zp4QrRbaxfMecvzPwNGhrf/799ZFKMVd+EJoe9CGU2i1V/DRdxybpsde5jL2hWwdnEqO/OKNPM4TmoS6u3iHr++EthwN9l59JIFx41QeQvTwvg8YNengaksunPCCvCzSeGwOwf3nRbKNPFDzx0RLpuAAP73HJ3RYMxhnAnT62DOjZifCSRMuCzduD5SSCJt2t+zFXaO31Hziqxxos9qj/Bde+HybltqeHTA0wmJsAB78MRIbeNBJnzTw+1OrDgy0nM1VgAT4ym+XqakYzQilFwmXXab3Woez8XdJMoxouI8owC7oXLtZ+kunrTRMu6skSSx58aI4elkQgrgWSHlskyzfblcOUp+p02zmNrRX+3q9WCNX/5e0oJ0BByF8l2ABMjbXwmASryKJlteZgFakr+jVWu6GrKcfnf/c12JjNfsIHMLGcvmAki6H8NjjWWHXzWsPmWBDq0Sf0EVwFxGgh1hjI0bGHTjLoxvKkvaqCkgl1wBjUz21jXN2st6np34h8qP+UGEDfOUDPjOUYf6aIiwI29g1dAra04LS/sm66njqn+CwzCChZ9EVj0DEg6TJtz584LzDz5akHFMTj3MS9ScP3FGZqx8/1JKnprq/KgPUaO2LEZ4X8YY8dAOG+uI+obc+0jvaKKa/EpeSOUht+0rOdMJ23IQg6sQk6jSrNpAgvlMfDqeYeCbW1012ppst3z5mIz07+yifaRE43QO52X9PdN2P17Olpjguf3Kb0xdBJ9FtzUQ26OJImwJk/b06EINccpPCPbvQZCRwealg6zIwDopnKo7tVRtNHFWUTAAAAA=';
+            profileImageChanged = true;
+            imageUpload.value = ''; // Clear file input
+        });
+
+        // Save profile
+        const saveProfileBtn = document.getElementById('saveProfileBtn');
+        const profileName = document.getElementById('profileName');
+        const profileEmail = document.getElementById('profileEmail');
+        
+        saveProfileBtn.addEventListener('click', () => {
+            if (!profileName.value.trim()) {
+                alert('Please enter your name');
+                return;
+            }
+            
+            if (!profileEmail.value.trim() || !profileEmail.value.includes('@')) {
+                alert('Please enter a valid email');
+                return;
+            }
+            
+            // In a real app, you would send this data to your backend
+            // Here we'll simulate saving the profile picture
+            if (profileImageChanged) {
+                // In a real app, you would upload the image to your server here
+                console.log('Profile picture would be uploaded to server');
+            }
+            
+            alert('Profile saved successfully!');
+            accountModal.classList.add('hidden');
+            profileImageChanged = false;
+            
+            // Update the header with new name (optional)
+            const headerName = document.querySelector('header h1');
+            if (headerName) {
+                headerName.textContent = profileName.value.trim();
+            }
+        });
+
+        // Upload button
+        uploadBtn.addEventListener('click', () => {
+            menuModal.classList.add('hidden');
+            uploadModal.classList.remove('hidden');
+        });
+
+        // Close upload
+        closeUploadBtn.addEventListener('click', () => {
+            uploadModal.classList.add('hidden');
+        });
+
+        // Submit documents
+        submitDocumentsBtn.addEventListener('click', () => {
+            if (!idUpload.files.length || !licenseUpload.files.length) {
+                alert('Please upload both documents');
+                return;
+            }
+            uploadModal.classList.add('hidden');
+            alert('Documents submitted successfully! Verification may take 1-2 business days.');
+        });
+
+        // Privacy Settings elements
+        const privacyModal = document.getElementById('privacyModal');
+        const closePrivacyBtn = document.getElementById('closePrivacy');
+        const privacySettingsBtn = document.querySelector('button:has(i.fa-shield-alt)');
+
+        // Show privacy settings
+        privacySettingsBtn.addEventListener('click', () => {
+            accountModal.classList.add('hidden');
+            privacyModal.classList.remove('hidden');
+        });
+
+        // Close privacy settings
+        closePrivacyBtn.addEventListener('click', () => {
+            privacyModal.classList.add('hidden');
+        });
+
+        // Toggle switches functionality
+        document.querySelectorAll('.peer').forEach(toggle => {
+            toggle.addEventListener('change', function() {
+                const settingName = this.closest('.flex').querySelector('span').textContent;
+                console.log(`${settingName} is now ${this.checked ? 'enabled' : 'disabled'}`);
+                // In a real app, you would save this preference to your backend
+            });
+        });
+
+        // File upload handling
+        [idUpload, licenseUpload].forEach(input => {
+            input.addEventListener('change', (e) => {
+                const fileName = e.target.files[0]?.name || 'No file selected';
+                const container = e.target.closest('.border-dashed');
+                if (container) {
+                    const icon = container.querySelector('i');
+                    const text = container.querySelector('p');
+                    if (icon && text) {
+                        icon.className = 'fas fa-check text-green-500 text-3xl mb-2';
+                        text.textContent = fileName;
+                        text.className = 'text-green-500 mb-2';
+                    }
+                }
+            });
+        });
+
+        // Bottom navigation buttons
+        const homeBtn = document.getElementById('homeBtn');
+        const searchBtn = document.getElementById('searchBtn');
+        const tripsBtn = document.getElementById('tripsBtn');
+        const walletBtn = document.getElementById('walletBtn');
+        const tripsModal = document.getElementById('tripsModal');
+        const closeTripsBtn = document.getElementById('closeTrips');
+
+        // Close trips modal
+        closeTripsBtn.addEventListener('click', () => {
+            tripsModal.classList.add('hidden');
+        });
+
+        // Highlight active button function
+        function setActiveButton(activeBtn) {
+            [homeBtn, searchBtn, tripsBtn, walletBtn].forEach(btn => {
+                btn.classList.remove('text-blue-500');
+                btn.classList.add('text-gray-500');
+            });
+            activeBtn.classList.remove('text-gray-500');
+            activeBtn.classList.add('text-blue-500');
+        }
+
+        // Home button
+        homeBtn.addEventListener('click', () => {
+            setActiveButton(homeBtn);
+            alert('Returning to home screen');
+            // In a real app, this would reset the UI to initial state
+        });
+
+        // Search button
+        searchBtn.addEventListener('click', () => {
+            setActiveButton(searchBtn);
+            document.getElementById('searchPanel').scrollIntoView({ behavior: 'smooth' });
+        });
+
+        // Trips button
+        tripsBtn.addEventListener('click', () => {
+            setActiveButton(tripsBtn);
+            tripsModal.classList.remove('hidden');
+        });
+
+        // Wallet elements
+        const walletModal = document.getElementById('walletModal');
+        const closeWalletBtn = document.getElementById('closeWallet');
+
+        // Close wallet modal
+        closeWalletBtn.addEventListener('click', () => {
+            walletModal.classList.add('hidden');
+        });
+
+        // Wallet button
+        walletBtn.addEventListener('click', () => {
+            setActiveButton(walletBtn);
+            walletModal.classList.remove('hidden');
+        });
+
+        // Payment Methods elements
+        const paymentMethodsBtn = document.getElementById('paymentMethodsBtn');
+        const paymentMethodsModal = document.getElementById('paymentMethodsModal');
+        const closePaymentMethodsBtn = document.getElementById('closePaymentMethods');
+        const addPaymentMethodBtn = document.getElementById('addPaymentMethodBtn');
+        const addPaymentForm = document.getElementById('addPaymentForm');
+        const cancelAddPayment = document.getElementById('cancelAddPayment');
+        const savePaymentMethod = document.getElementById('savePaymentMethod');
+
+        // Show payment methods
+        paymentMethodsBtn.addEventListener('click', () => {
+            walletModal.classList.add('hidden');
+            paymentMethodsModal.classList.remove('hidden');
+        });
+
+        // Close payment methods
+        closePaymentMethodsBtn.addEventListener('click', () => {
+            paymentMethodsModal.classList.add('hidden');
+            walletModal.classList.remove('hidden');
+        });
+
+        // Show add payment form
+        addPaymentMethodBtn.addEventListener('click', () => {
+            addPaymentForm.classList.remove('hidden');
+            addPaymentMethodBtn.classList.add('hidden');
+        });
+
+        // Cancel add payment
+        cancelAddPayment.addEventListener('click', () => {
+            addPaymentForm.classList.add('hidden');
+            addPaymentMethodBtn.classList.remove('hidden');
+        });
+
+        // Save payment method
+        savePaymentMethod.addEventListener('click', () => {
+            // In a real app, validate and save to backend
+            alert('Payment method added successfully!');
+            addPaymentForm.classList.add('hidden');
+            addPaymentMethodBtn.classList.remove('hidden');
+        });
+
+        // Wallet functionality
+        const addMoneyBtn = document.getElementById('addMoneyBtn');
+        const transferMoneyBtn = document.getElementById('transferMoneyBtn');
+        const addMoneyForm = document.getElementById('addMoneyForm');
+        const transferMoneyForm = document.getElementById('transferMoneyForm');
+        const cancelAddMoney = document.getElementById('cancelAddMoney');
+        const cancelTransfer = document.getElementById('cancelTransfer');
+        const confirmAddMoney = document.getElementById('confirmAddMoney');
+        const confirmTransfer = document.getElementById('confirmTransfer');
+        const walletBalance = document.querySelector('#walletModal .text-3xl');
+
+        // Show add money form
+        addMoneyBtn.addEventListener('click', () => {
+            addMoneyForm.classList.remove('hidden');
+            transferMoneyForm.classList.add('hidden');
+            addMoneyBtn.classList.add('hidden');
+            transferMoneyBtn.classList.add('hidden');
+        });
+
+        // Show transfer money form
+        transferMoneyBtn.addEventListener('click', () => {
+            transferMoneyForm.classList.remove('hidden');
+            addMoneyForm.classList.add('hidden');
+            addMoneyBtn.classList.add('hidden');
+            transferMoneyBtn.classList.add('hidden');
+        });
+
+        // Cancel add money
+        cancelAddMoney.addEventListener('click', () => {
+            addMoneyForm.classList.add('hidden');
+            addMoneyBtn.classList.remove('hidden');
+            transferMoneyBtn.classList.remove('hidden');
+            document.getElementById('addAmount').value = '';
+        });
+
+        // Cancel transfer money
+        cancelTransfer.addEventListener('click', () => {
+            transferMoneyForm.classList.add('hidden');
+            addMoneyBtn.classList.remove('hidden');
+            transferMoneyBtn.classList.remove('hidden');
+            document.getElementById('transferAmount').value = '';
+            document.getElementById('recipientPhone').value = '';
+        });
+
+        // Confirm add money
+        confirmAddMoney.addEventListener('click', () => {
+            const amount = parseFloat(document.getElementById('addAmount').value);
+            if (isNaN(amount) || amount <= 0) {
+                alert('Please enter a valid amount');
+                return;
+            }
+
+            // Update balance (in a real app, this would be a server call)
+            const currentBalance = parseFloat(walletBalance.textContent.replace('Le ', '').replace(/,/g, ''));
+            const newBalance = currentBalance + amount;
+            walletBalance.textContent = `Le ${newBalance.toLocaleString()}`;
+            
+            // Add transaction to history
+            const transactionsDiv = document.querySelector('#walletModal .space-y-3');
+            const newTransaction = document.createElement('div');
+            newTransaction.className = 'flex justify-between items-center';
+            newTransaction.innerHTML = `
+                <div>
+                    <div class="font-medium">Wallet Top-up</div>
+                    <div class="text-sm text-gray-500">Just now</div>
+                </div>
+                <div class="text-green-500 font-bold">+ Le ${amount.toLocaleString()}</div>
+            `;
+            transactionsDiv.prepend(newTransaction);
+
+            // Reset form
+            addMoneyForm.classList.add('hidden');
+            addMoneyBtn.classList.remove('hidden');
+            transferMoneyBtn.classList.remove('hidden');
+            document.getElementById('addAmount').value = '';
+
+            alert(`Successfully added Le ${amount.toLocaleString()} to your wallet`);
+        });
+
+        // Confirm transfer money
+        confirmTransfer.addEventListener('click', () => {
+            const amount = parseFloat(document.getElementById('transferAmount').value);
+            const phone = document.getElementById('recipientPhone').value.trim();
+            
+            if (isNaN(amount) || amount <= 0) {
+                alert('Please enter a valid amount');
+                return;
+            }
+
+            if (!phone || phone.length < 8) {
+                alert('Please enter a valid phone number');
+                return;
+            }
+
+            // Check balance (in a real app, this would be a server call)
+            const currentBalance = parseFloat(walletBalance.textContent.replace('Le ', '').replace(/,/g, ''));
+            if (amount > currentBalance) {
+                alert('Insufficient balance');
+                return;
+            }
+
+            // Update balance
+            const newBalance = currentBalance - amount;
+            walletBalance.textContent = `Le ${newBalance.toLocaleString()}`;
+            
+            // Add transaction to history
+            const transactionsDiv = document.querySelector('#walletModal .space-y-3');
+            const newTransaction = document.createElement('div');
+            newTransaction.className = 'flex justify-between items-center';
+            newTransaction.innerHTML = `
+                <div>
+                    <div class="font-medium">Transfer to ${phone}</div>
+                    <div class="text-sm text-gray-500">Just now</div>
+                </div>
+                <div class="text-red-500 font-bold">- Le ${amount.toLocaleString()}</div>
+            `;
+            transactionsDiv.prepend(newTransaction);
+
+            // Reset form
+            transferMoneyForm.classList.add('hidden');
+            addMoneyBtn.classList.remove('hidden');
+            transferMoneyBtn.classList.remove('hidden');
+            document.getElementById('transferAmount').value = '';
+            document.getElementById('recipientPhone').value = '';
+
+            alert(`Successfully transferred Le ${amount.toLocaleString()} to ${phone}`);
+        });
+
+        // Simulate driver markers animation
+        setInterval(() => {
+            const markers = document.querySelectorAll('.driver-marker');
+            markers.forEach(marker => {
+                const currentTop = parseInt(marker.style.top);
+                const currentLeft = parseInt(marker.style.left);
+                
+                // Random small movement
+                const newTop = currentTop + (Math.random() * 2 - 1);
+                const newLeft = currentLeft + (Math.random() * 2 - 1);
+                
+                marker.style.top = `${newTop}%`;
+                marker.style.left = `${newLeft}%`;
+            });
+        }, 2000);
+    </script>
+</body>
+</html>
